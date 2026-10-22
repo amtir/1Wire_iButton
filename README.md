@@ -1,56 +1,73 @@
+# 1-Wire iButton Reader — Raspberry Pi
 
+A Python 3 program that reads the unique serial number of **Dallas / Maxim iButtons** (e.g. DS1990A) over the **1-Wire** bus on a Raspberry Pi, for **automatic identification** such as access control, user login or time tracking.
 
-# 1Wire_iButton
+<p align="center">
+  <img src="photos/iButton-1Wire_Dallas.png" alt="iButton reader and keys" width="420">
+</p>
 
-1-Wire is a device communications bus system designed by Dallas Semiconductor Corp. that provides low-speed (16.3kbps) data, signaling, and power over a single conductor. One distinctive feature of the bus is the possibility of using only two wires: data and ground. 
+## Background
 
-Each 1-Wire chip has a unique identifier code (64-bit address). This feature makes the chips, especially iButtons, suitable electronic keys. Some uses include locks, burglar alarms, computer systems, manufacturer-approved accessories and time clocks. 
+**1-Wire** is a communication bus designed by Dallas Semiconductor. It carries low-speed data (16.3 kbps), signalling and power over a single conductor, so a device needs only two wires: data and ground.
 
-https://en.wikipedia.org/wiki/1-Wire
+Every 1-Wire chip has a factory-programmed, globally unique **64-bit ID** (8-bit family code + 48-bit serial + 8-bit CRC). This makes iButtons practical electronic keys for locks, alarms, computer systems, accessories and time clocks. [More on Wikipedia](https://en.wikipedia.org/wiki/1-Wire).
 
+## How It Works
 
-pi@raspberrypi:~/iButton-1Wire $ 
-pi@raspberrypi:~/iButton-1Wire $ sudo python3 iButton-1Wire.py 
-2019-06-07T16:45:15.076385 : iButton-ID = 01-00001933801c
+1. Loads the Linux 1-Wire kernel drivers (`w1-gpio`, `w1-smem`). The bus is on **GPIO 4** by default.
+2. Polls `/sys/devices/w1_bus_master1/w1_master_slaves` for a connected iButton.
+3. Prints the ID with a timestamp as soon as a key touches the reader.
+4. Writes the ID to `w1_master_remove` so the next touch is detected right away.
 
-2019-06-07T16:45:15.077992 : iButton-ID = 01-00001933801c
+> By default the kernel scans the bus only every 10 s. For an instant response, lower the timeout, e.g. `w1_master_timeout=0`, `w1_master_timeout_us=500` (see the comments in the script).
 
-2019-06-07T16:45:15.135908 : iButton-ID = 01-00001933801c
+## Hardware
 
-2019-06-07T16:45:15.195751 : iButton-ID = 01-00001933801c
+| Component | Connection |
+|-----------|------------|
+| Raspberry Pi | Raspbian / Raspberry Pi OS |
+| iButton probe (reader) | Data → **GPIO 4**, Ground → GND |
+| Pull-up resistor | ~4.7 kΩ between data and 3.3 V |
+| iButtons | DS1990A (family code `01`) or compatible |
 
-2019-06-07T16:45:15.255419 : iButton-ID = 01-00001933801c
+<p align="center">
+  <img src="photos/iButton_Dallas.jpeg" alt="iButton keys" width="380">
+</p>
 
-2019-06-07T16:45:15.315571 : iButton-ID = 01-00001933801c
+## Getting Started
 
-2019-06-07T16:45:15.375553 : iButton-ID = 01-00001933801c
+```bash
+# Enable the 1-Wire interface
+echo "dtoverlay=w1-gpio" | sudo tee -a /boot/config.txt
+sudo reboot
 
-2019-06-07T16:45:15.465508 : iButton-ID = 01-00001933801c
+pip3 install -r requirements.txt
+sudo python3 src/iButton-1Wire.py
+```
 
-2019-06-07T16:45:15.525526 : iButton-ID = 01-00001933801c
+## Sample Output
 
-2019-06-07T16:45:15.585670 : iButton-ID = 01-00001933801c
+```
+2019-06-07T16:45:15.076385 : iButton-ID = 01-0000XXXXXXXX
+2019-06-07T16:45:15.135908 : iButton-ID = 01-0000XXXXXXXX
+```
 
-2019-06-07T16:45:15.645559 : iButton-ID = 01-00001933801c
+`01` is the family code (DS1990A). IDs are masked here; a full run is in [`logs/sample_output.txt`](logs/sample_output.txt).
 
-2019-06-07T16:45:15.705490 : iButton-ID = 01-00001933801c
+## Repository Structure
 
-2019-06-07T16:45:21.795714 : iButton-ID = 01-00000fcfae14
+```
+.
+├── src/iButton-1Wire.py   # Reader program
+├── logs/                  # Sample run output
+├── photos/                # Reader and key photos
+└── requirements.txt
+```
 
-2019-06-07T16:45:21.796982 : iButton-ID = 01-00000fcfae14
+## Tech Stack
 
-2019-06-07T16:45:21.855697 : iButton-ID = 01-00000fcfae14
+Python 3 · Raspberry Pi · 1-Wire (w1-gpio) · Linux sysfs · Dallas / Maxim iButton
 
-2019-06-07T16:45:21.915688 : iButton-ID = 01-00000fcfae14
+## Author
 
-2019-06-07T16:45:21.985695 : iButton-ID = 01-00000fcfae14
-
-2019-06-07T16:45:22.045503 : iButton-ID = 01-00000fcfae14
-
-2019-06-07T16:45:22.105439 : iButton-ID = 01-00000fcfae14
-
-2019-06-07T16:45:22.165781 : iButton-ID = 01-00000fcfae14
-
-
-
-
+**Akram M'Tir**, [@amtir](https://github.com/amtir)
